@@ -94,9 +94,15 @@ export default class Client {
 
     getPerformancesByShow = (showId, updater) => {
         axios.get(`/shows/${showId}?include=performances`).then(response => {
-            console.debug('Performances recieved -> ', response.data)
             updater(response.data.performances)
         })
         .catch(error => console.error('Error fetching showtimes', error.message))
+    }
+
+    getLevelsByVenue = (venueId, updater) => {
+        axios.get(`/venues/${venueId}?include=levels`).then(response => {
+            updater(response.data.levels)
+        })
+        .catch(error => console.log('Error fetching venue info', error.message))
     }
 }

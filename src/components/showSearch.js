@@ -1,6 +1,7 @@
 import React, {Component} from 'react';
 import { Grid, Select, Card } from 'semantic-ui-react';
 import Client from '../utils/restClient';
+import SeatPicker from './seatPicker';
 
 export default class ShowSearch extends Component {
     state = {
@@ -8,14 +9,18 @@ export default class ShowSearch extends Component {
         time : null,
         showOptions : [],
         timeOptions : [],
-        shows : []
+        levels : null
     }
     client = new Client();
 
     componentDidMount() {
         this.client.getVenuesAndShows((data) => {
+            const showMap = new Map();
+            data.forEach(show => {
+                showMap.set(show.id, show);
+            });
             this.setState({
-                shows : data,
+                shows : showMap,
                 showOptions : this.buildShowOptions(data)
             })
         })
@@ -37,11 +42,23 @@ export default class ShowSearch extends Component {
                         {this.renderCard()}
                     </Grid.Column>
                     <Grid.Column width={11}>
-                        HELLO
+                        {this.renderSeatPicker()}
                     </Grid.Column>
                 </Grid.Row>
             </Grid> 
         )
+    }
+
+    renderSeatPicker = () => {
+        if (this.state.levels !== null){
+            return(
+                <SeatPicker 
+                    show={this.state.shows.get(this.state.show)}
+                    performances={this.state.performances.get(this.state.time)}
+                    levels={this.state.levels}
+                />
+            )
+        }
     }
 
     renderTimeSelection = () => {
@@ -50,8 +67,12 @@ export default class ShowSearch extends Component {
             this.state.timeOptions, 
             this.state.time, 
             ((e, {value}) => {
-                this.setState({
-                    time : value
+                this.client.getLevelsByVenue(this.state.shows.get(this.state.show).venue.id, (levels) => {
+                    console.log('levels -> ', levels)
+                    this.setState({
+                        time : value,
+                        levels : levels
+                    })
                 })
             })
         )
@@ -64,10 +85,15 @@ export default class ShowSearch extends Component {
             this.state.show, 
             ((e, {value}) => {
                 this.client.getPerformancesByShow(value, (performances) => {
+                    const perfMap = new Map();
+                    performances.forEach(p => {
+                        perfMap.set(p.id, p)
+                    })
                     this.setState({
                         show : value,
                         time : null,
-                        performances : performances,
+                        levels : null,
+                        performances : perfMap,
                         timeOptions : this.buildTimeOptions(performances) 
                     })
                 })
@@ -76,8 +102,9 @@ export default class ShowSearch extends Component {
     }
 
     renderCard = () => {
-        const selectedShow = this.state.shows.find(show => show.id === this.state.show)
-        if (selectedShow !== undefined) {
+        if (this.state.shows !== undefined && this.state.shows.has(this.state.show)){  
+            const selectedShow = this.state.shows.get(this.state.show)
+        
             return(
                 <Card key='infoCard'>
                     <Card.Content header={selectedShow.name} />
